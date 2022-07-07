@@ -1,0 +1,6 @@
+/.env
+/cache/
+/deployments/
+/node_modules/
+/typechain/
+/artifacts/
