@@ -3,14 +3,13 @@ pragma solidity 0.8.15;
 
 import {IERC20} from "./interfaces/IERC20.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
-import {IERC20Permit} from "./interfaces/IERC20Permit.sol";
 import "./BasePool.sol";
 
 contract DistributionPool is BasePool {
     using SafeTransferLib for IERC20;
 
     enum PoolStatus {
-        None, // not existed
+        None, // not exists
         Initialized, // unfunded
         Funded, // funded
         Closed // canceled or fully distributed
@@ -38,15 +37,6 @@ contract DistributionPool is BasePool {
         uint128[] amounts;
         uint48 startTime;
         uint48 deadline;
-    }
-
-    struct PermitData {
-        address token;
-        uint256 value;
-        uint256 deadline;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
     }
 
     uint256 private locked = 1;
@@ -90,14 +80,17 @@ contract DistributionPool is BasePool {
         return _create(poolInfo);
     }
 
-    function createWithPermit(PoolInfo calldata poolInfo, PermitData[] calldata permitDatas) 
+    function createWithPermit(
+        PoolInfo calldata poolInfo,
+        PermitData calldata permitData
+    ) 
         external
         payable
         nonReentrant
         onlyOwner
         returns (uint256)
     {
-        batchSelfPermit(permitDatas);
+        selfPermit(permitData.token, permitData.value, permitData.deadline, permitData.v, permitData.r, permitData.s);
         return _create(poolInfo);
     }
 
@@ -269,13 +262,13 @@ contract DistributionPool is BasePool {
 
     function fundWithPermit(
         uint256 _poolId,
-        PermitData[] calldata permitDatas
+        PermitData calldata permitData
     )
         external
         payable
         nonReentrant
     {
-        batchSelfPermit(permitDatas);
+        selfPermit(permitData.token, permitData.value, permitData.deadline, permitData.v, permitData.r, permitData.s);
         _fundSinglePool(pools[_poolId], _poolId);
     }
 
@@ -407,33 +400,6 @@ contract DistributionPool is BasePool {
             require(
                 receivedAmount >= wantAmount,
                 "received token amount must be greater than or equal to wantAmount"
-            );
-        }
-    }
-
-    // Functionality to call permit on any EIP-2612-compliant token
-    function selfPermit(
-        address token,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public {
-        IERC20Permit(token).permit(msg.sender, address(this), value, deadline, v, r, s);
-    }
-
-    function batchSelfPermit(
-        PermitData[] calldata permitDatas
-    ) public {
-        for (uint256 i = 0; i < permitDatas.length; ++i) {
-            selfPermit(
-                permitDatas[i].token,
-                permitDatas[i].value,
-                permitDatas[i].deadline,
-                permitDatas[i].v,
-                permitDatas[i].r,
-                permitDatas[i].s
             );
         }
     }

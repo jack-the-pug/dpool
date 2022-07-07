@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import {SafeTransferLib} from "./libs/SafeTransferLib.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
+import {IERC20Permit} from "./interfaces/IERC20Permit.sol";
 
 contract BasePool {
     using SafeTransferLib for IERC20;
@@ -12,6 +13,15 @@ contract BasePool {
         address token;
         address payable[] recipients;
         uint256[] values;
+    }
+
+    struct PermitData {
+        address token;
+        uint256 value;
+        uint256 deadline;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
     }
 
     IWETH immutable wNATIVE;
@@ -72,6 +82,20 @@ contract BasePool {
         _disperseToken(token, recipients, values);
     }
 
+    function disperseTokenWithPermit(
+        IERC20 token,
+        address payable[] calldata recipients,
+        uint256[] calldata values, 
+        PermitData calldata permitData
+    )
+        external
+        payable
+        onlyOwner
+    {
+        selfPermit(permitData.token, permitData.value, permitData.deadline, permitData.v, permitData.r, permitData.s);
+        _disperseToken(token, recipients, values);
+    }
+
     function _disperseToken(
         IERC20 token,
         address payable[] calldata recipients,
@@ -90,6 +114,22 @@ contract BasePool {
         payable
         onlyOwner
     {
+        _batchDisperse(disperseDatas);
+    }
+
+    function batchDisperseWithPermit(
+        DisperseData[] calldata disperseDatas,
+        PermitData[] calldata permitDatas
+    ) 
+        external
+        payable
+        onlyOwner
+    {
+        batchSelfPermit(permitDatas);
+        _batchDisperse(disperseDatas);
+    }
+
+    function _batchDisperse(DisperseData[] calldata disperseDatas) internal {
         uint256 disperseCount = disperseDatas.length;
         bool nativePoolAlreadyExist;
         for (uint256 i = 0; i < disperseCount; ++i) {
@@ -124,6 +164,33 @@ contract BasePool {
     ) external onlyOwner {
         for (uint256 i = 0; i < recipients.length; ++i)
             token.transferFrom(msg.sender, recipients[i], values[i]);
+    }
+
+    // Functionality to call permit on any EIP-2612-compliant token
+    function selfPermit(
+        address token,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public {
+        IERC20Permit(token).permit(msg.sender, address(this), value, deadline, v, r, s);
+    }
+
+    function batchSelfPermit(
+        PermitData[] calldata permitDatas
+    ) public {
+        for (uint256 i = 0; i < permitDatas.length; ++i) {
+            selfPermit(
+                permitDatas[i].token,
+                permitDatas[i].value,
+                permitDatas[i].deadline,
+                permitDatas[i].v,
+                permitDatas[i].r,
+                permitDatas[i].s
+            );
+        }
     }
 
     // arbitrary call for retrieving tokens, airdrops, and etc
