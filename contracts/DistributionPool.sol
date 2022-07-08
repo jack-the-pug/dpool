@@ -90,7 +90,7 @@ contract DistributionPool is BasePool {
         onlyOwner
         returns (uint256)
     {
-        selfPermit(permitData.token, permitData.value, permitData.deadline, permitData.v, permitData.r, permitData.s);
+        selfPermit(permitData);
         return _create(poolInfo);
     }
 
@@ -268,7 +268,7 @@ contract DistributionPool is BasePool {
         payable
         nonReentrant
     {
-        selfPermit(permitData.token, permitData.value, permitData.deadline, permitData.v, permitData.r, permitData.s);
+        selfPermit(permitData);
         _fundSinglePool(pools[_poolId], _poolId);
     }
 
