@@ -49,7 +49,7 @@ contract DistributionPool is BasePool {
 
     event Created(uint256 indexed poolId);
     event Canceled(uint256 indexed poolId);
-    event Claimed(uint256 indexed poolId);
+    event Claimed(uint256 indexed poolId, address claimer);
     event Funded(uint256 indexed poolId, address funder);
     event Distributed(uint256 indexed poolId);
 
@@ -248,7 +248,7 @@ contract DistributionPool is BasePool {
             } else {
                 pool.token.safeTransfer(_claimer, _amount);
             }
-            emit Claimed(_poolId);
+            emit Claimed(_poolId, _claimer);
         }
     }
 
@@ -312,8 +312,24 @@ contract DistributionPool is BasePool {
         }
     }
 
-    /// d tokens to users
-    function distribute(uint256[] calldata _poolIds) external nonReentrant {
+    /// distribute tokens
+    function distribute(uint256 _poolId) external payable nonReentrant {
+        _distributeSinglePool(_poolId);
+    }
+
+    function distributeWithPermit(
+        uint256 _poolId,
+        PermitData calldata permitData
+    )
+        external
+        payable
+        nonReentrant
+    {
+        selfPermit(permitData);
+        _distributeSinglePool(_poolId);
+    }
+
+    function batchDistribute(uint256[] calldata _poolIds) external nonReentrant {
         for (uint256 i = 0; i < _poolIds.length; ++i) {
             _distributeSinglePool(_poolIds[i]);
         }
