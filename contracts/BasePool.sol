@@ -184,13 +184,16 @@ contract BasePool {
         }
     }
 
-    // arbitrary call for retrieving tokens, airdrops, and etc
-    function ownerCall(
-        address to,
-        uint256 value,
-        bytes calldata data
-    ) external payable onlyOwner returns (bool success, bytes memory result) {
-        (success, result) = to.call{value: value}(data);
+    function sweepToken(
+        address token,
+        uint256 amount,
+        address recipient
+    ) external onlyOwner {
+        if (token == address(0)) {
+            _safeTransferETHWithFallback(recipient, amount);
+        } else {
+            IERC20(token).safeTransfer(recipient, amount);
+        }
     }
 
     /**

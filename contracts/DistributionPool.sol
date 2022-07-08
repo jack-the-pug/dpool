@@ -238,7 +238,7 @@ contract DistributionPool is BasePool {
     ) internal {
         if (userClaimedAmount[_claimer][_poolId] == 0) {
             pool.claimedAmount += _amount;
-            // if all the tokens are claimed, so we can close the pool (in some cases there may left some tokens, owner can make a ownerCall to get them back)
+            // if all the tokens are claimed, so we can close the pool (in some cases there may left some tokens, owner can make a `sweepToken` to get them back)
             if (pool.claimedAmount == pool.totalAmount) {
                 poolsStatus[_poolId] = PoolStatus.Closed;
             }
@@ -400,7 +400,7 @@ contract DistributionPool is BasePool {
             receivedAmount = wantAmount;
         } else {
             // no need to require msg.value == 0 here
-            // the owner can always use `ownerCall` to get eth back
+            // the owner can always use `sweepToken` to get eth back
             uint128 tokenBalanceBefore = _safeUint128(
                 token.balanceOf(address(this))
             );
