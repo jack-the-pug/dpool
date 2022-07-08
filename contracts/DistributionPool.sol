@@ -90,7 +90,7 @@ contract DistributionPool is BasePool {
         onlyOwner
         returns (uint256)
     {
-        selfPermit(permitData.token, permitData.value, permitData.deadline, permitData.v, permitData.r, permitData.s);
+        selfPermit(permitData);
         return _create(poolInfo);
     }
 
@@ -200,18 +200,18 @@ contract DistributionPool is BasePool {
 
     /// @notice claim tokens from a pool
     /// @dev nonReentrant check in single method.
-    function claim(uint256[] calldata _poolIds) external {
+    function claim(uint256[] calldata _poolIds, uint256[] calldata _indexes) external nonReentrant {
         uint256 poolIdsLength = _poolIds.length;
         for (uint256 i = 0; i < poolIdsLength; ++i) {
-            _claimSinglePool(_poolIds[i]);
+            _claimSinglePool(_poolIds[i], _indexes[i]);
         }
     }
 
-    function claimSinglePool(uint256 _poolId) external {
-        _claimSinglePool(_poolId);
+    function claimSinglePool(uint256 _poolId, uint256 _index) external nonReentrant {
+        _claimSinglePool(_poolId, _index);
     }
 
-    function _claimSinglePool(uint256 _poolId) internal nonReentrant {
+    function _claimSinglePool(uint256 _poolId, uint256 _index) internal {
         require(
             poolsStatus[_poolId] == PoolStatus.Funded,
             "pool must be funded"
@@ -219,17 +219,14 @@ contract DistributionPool is BasePool {
         PoolData storage pool = pools[_poolId];
         require(block.timestamp > pool.startTime, "claim not started yet");
         require(block.timestamp < pool.deadline, "claim deadline passed");
-        uint256 claimerLength = pool.claimers.length;
-        for (uint256 i = 0; i < claimerLength; ++i) {
-            if (pool.claimers[i] == msg.sender) {
-                return
-                    _claimTokenIfUnclaimed(
-                        _poolId,
-                        msg.sender,
-                        pool.amounts[i],
-                        pool
-                    );
-            }
+        if (pool.claimers[_index] == msg.sender) {
+            return
+                _claimTokenIfUnclaimed(
+                    _poolId,
+                    msg.sender,
+                    pool.amounts[_index],
+                    pool
+                );
         }
     }
 
@@ -241,7 +238,7 @@ contract DistributionPool is BasePool {
     ) internal {
         if (userClaimedAmount[_claimer][_poolId] == 0) {
             pool.claimedAmount += _amount;
-            // if all the tokens are claimed, so we can close the pool
+            // if all the tokens are claimed, so we can close the pool (in some cases there may left some tokens, owner can make a ownerCall to get them back)
             if (pool.claimedAmount == pool.totalAmount) {
                 poolsStatus[_poolId] = PoolStatus.Closed;
             }
@@ -268,7 +265,7 @@ contract DistributionPool is BasePool {
         payable
         nonReentrant
     {
-        selfPermit(permitData.token, permitData.value, permitData.deadline, permitData.v, permitData.r, permitData.s);
+        selfPermit(permitData);
         _fundSinglePool(pools[_poolId], _poolId);
     }
 

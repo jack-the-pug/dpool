@@ -92,7 +92,7 @@ contract BasePool {
         payable
         onlyOwner
     {
-        selfPermit(permitData.token, permitData.value, permitData.deadline, permitData.v, permitData.r, permitData.s);
+        selfPermit(permitData);
         _disperseToken(token, recipients, values);
     }
 
@@ -167,29 +167,23 @@ contract BasePool {
     }
 
     // Functionality to call permit on any EIP-2612-compliant token
-    function selfPermit(
-        address token,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public {
-        IERC20Permit(token).permit(msg.sender, address(this), value, deadline, v, r, s);
+    function selfPermit(PermitData calldata permitData) public {
+        IERC20Permit(permitData.token).permit(
+            msg.sender,
+            address(this),
+            permitData.value,
+            permitData.deadline,
+            permitData.v,
+            permitData.r,
+            permitData.s
+        );
     }
 
     function batchSelfPermit(
         PermitData[] calldata permitDatas
     ) public {
         for (uint256 i = 0; i < permitDatas.length; ++i) {
-            selfPermit(
-                permitDatas[i].token,
-                permitDatas[i].value,
-                permitDatas[i].deadline,
-                permitDatas[i].v,
-                permitDatas[i].r,
-                permitDatas[i].s
-            );
+            selfPermit(permitDatas[i]);
         }
     }
 
