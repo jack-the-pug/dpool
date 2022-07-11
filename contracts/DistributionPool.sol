@@ -130,22 +130,33 @@ contract DistributionPool is BasePool {
         uint128 totalAmount;
         {
             uint256 claimersLength = poolInfo.claimers.length;
+            require(claimersLength > 0, "must specify at least one claimer");
             uint256 amountsLength = poolInfo.amounts.length;
             require(
                 claimersLength == amountsLength,
                 "length of claimers and amounts must be equal"
             );
-            for (uint256 i = 0; i < claimersLength; ++i) {
-                require(
-                    poolInfo.claimers[i] != address(0),
-                    "claimer must be a valid address"
-                );
+            require(
+                poolInfo.claimers[0] != address(0),
+                "claimer must be a valid address"
+            );
+            require(
+                poolInfo.amounts[0] > 0,
+                "amount must be greater than 0"
+            );
+
+            // set totalAmount to first claimer
+            totalAmount = poolInfo.amounts[0];
+            
+            // then start iterating from second claimer onwards (if claimersLength >= 2)
+            for (uint256 i = 1; i < claimersLength; ++i) {
                 require(
                     poolInfo.amounts[i] > 0,
                     "amount must be greater than 0"
                 );
+                // address 0 check is not needed because the first claimer address already checked above 
                 require(
-                    i == 0 || poolInfo.claimers[i] > poolInfo.claimers[i - 1],
+                    poolInfo.claimers[i] > poolInfo.claimers[i - 1],
                     "Not sorted or duplicate"
                 );
                 // will revert on overflow when `totalAmount + poolInfo.amounts[i] > type(uint128).max`
