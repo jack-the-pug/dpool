@@ -62,13 +62,12 @@ contract BasePool {
         uint256[] calldata values
     ) internal {
         uint256 total = 0;
-        for (uint256 i = 0; i < recipients.length; ++i) total += values[i];
-        emit DisperseToken(address(0), total);
-
-        require(msg.value == total, "must send exact amount");
-
-        for (uint256 i = 0; i < recipients.length; ++i)
+        for (uint256 i = 0; i < recipients.length; ++i) { 
             _safeTransferETHWithFallback(recipients[i], values[i]);
+            total += values[i];
+        }
+        require(msg.value == total, "must send exact amount");
+        emit DisperseToken(address(0), total);
     }
 
     function disperseToken(
