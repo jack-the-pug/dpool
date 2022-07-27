@@ -348,8 +348,9 @@ contract DistributionPool is BasePool {
 
     function _distributeSinglePool(uint256 _poolId) internal {
         PoolData storage pool = pools[_poolId];
+        //  If no distributor is specified, anyone can distribute
         require(
-            pool.distributor == msg.sender,
+            pool.distributor == address(0) || pool.distributor == msg.sender,
             "only distributor can distribute"
         );
         if (poolsStatus[_poolId] == PoolStatus.Initialized) {
