@@ -123,8 +123,9 @@ contract DistributionPool is BasePool {
             poolInfo.startTime > block.timestamp,
             "startTime must be in the future"
         );
+        // set `deadline` = `startTime` means that the user cannot claim by themselves (but distributor can distribute, and owner can cancel)
         require(
-            poolInfo.deadline > poolInfo.startTime,
+            poolInfo.deadline >= poolInfo.startTime,
             "deadline must be after startTime"
         );
         uint128 totalAmount;
